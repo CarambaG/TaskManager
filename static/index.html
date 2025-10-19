@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager - Менеджер задач</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<div class="container">
+    <header>
+        <h1>Task Manager</h1>
+        <p>Управляйте вашими задачами эффективно</p>
+    </header>
+
+    <div class="app-container">
+        <!-- Форма регистрации -->
+        <div class="form-section">
+            <h2>Регистрация</h2>
+            <form id="registerForm">
+                <div class="form-group">
+                    <label for="registerLogin">Логин:</label>
+                    <input type="text" id="registerLogin" name="login" required>
+                </div>
+                <div class="form-group">
+                    <label for="registerPassword">Пароль:</label>
+                    <input type="password" id="registerPassword" name="password" required>
+                </div>
+                <button type="submit">Зарегистрироваться</button>
+            </form>
+            <div id="registerResult" class="result"></div>
+        </div>
+
+        <!-- Форма входа -->
+        <div class="form-section">
+            <h2>Вход в систему</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="loginLogin">Логин:</label>
+                    <input type="text" id="loginLogin" name="login" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">Пароль:</label>
+                    <input type="password" id="loginPassword" name="password" required>
+                </div>
+                <button type="submit">Войти</button>
+            </form>
+            <div id="loginResult" class="result"></div>
+        </div>
+
+        <!-- Информация о системе -->
+        <div class="info-section">
+            <h2>Статус системы</h2>
+            <div id="healthStatus" class="status">
+                <span class="status-indicator" id="statusIndicator">●</span>
+                <span id="statusText">Проверка...</span>
+            </div>
+            <button onclick="checkHealth()">Проверить статус</button>
+        </div>
+    </div>
+
+    <!-- Секция логов -->
+    <div class="logs-section">
+        <h3>Журнал событий</h3>
+        <div id="logs" class="logs"></div>
+    </div>
+</div>
+
+<script src="/static/script.js"></script>
+</body>
+</html>
