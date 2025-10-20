@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager - Личный кабинет</title>
+    <link rel="stylesheet" href="/static/dashboard/style.css">
+</head>
+<body>
+<div class="container">
+    <header>
+        <div class="header-content">
+            <h1>Task Manager</h1>
+            <div class="user-info">
+                <span id="userGreeting">Добро пожаловать!</span>
+                <button onclick="logout()" class="logout-btn">Выйти</button>
+            </div>
+        </div>
+    </header>
+
+    <div class="dashboard-container">
+        <!-- Боковая панель -->
+        <aside class="sidebar">
+            <div class="user-card">
+                <div class="avatar">
+                    <span id="userInitials">U</span>
+                </div>
+                <h3 id="userLogin">Пользователь</h3>
+                <p id="userSince">Зарегистрирован: </p>
+            </div>
+
+            <nav class="nav-menu">
+                <button class="nav-btn active" onclick="showSection('tasks')">
+                    📋 Мои задачи
+                </button>
+                <button class="nav-btn" onclick="showSection('profile')">
+                    👤 Профиль
+                </button>
+                <button class="nav-btn" onclick="showSection('stats')">
+                    📊 Статистика
+                </button>
+            </nav>
+        </aside>
+
+        <!-- Основной контент -->
+        <main class="main-content">
+            <!-- Секция задач -->
+            <section id="tasks-section" class="content-section active">
+                <div class="section-header">
+                    <h2>Мои задачи</h2>
+                    <button class="btn-primary" onclick="openTaskModal()">
+                        + Новая задача
+                    </button>
+                </div>
+
+                <div class="tasks-controls">
+                    <div class="filter-group">
+                        <button class="filter-btn active" data-filter="all">Все</button>
+                        <button class="filter-btn" data-filter="active">Активные</button>
+                        <button class="filter-btn" data-filter="completed">Выполненные</button>
+                    </div>
+                    <div class="search-box">
+                        <input type="text" id="taskSearch" placeholder="Поиск задач...">
+                    </div>
+                </div>
+
+                <div class="tasks-list" id="tasksList">
+                    <div class="empty-state">
+                        <p>Задачи отсутствуют</p>
+                        <button class="btn-primary" onclick="openTaskModal()">
+                            Создать первую задачу
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Секция профиля -->
+            <section id="profile-section" class="content-section">
+                <div class="section-header">
+                    <h2>Профиль пользователя</h2>
+                </div>
+
+                <div class="profile-info">
+                    <div class="info-card">
+                        <h3>Основная информация</h3>
+                        <div class="info-item">
+                            <label>ID пользователя:</label>
+                            <span id="profileUserId"></span>
+                        </div>
+                        <div class="info-item">
+                            <label>Логин:</label>
+                            <span id="profileLogin"></span>
+                        </div>
+                        <div class="info-item">
+                            <label>Дата регистрации:</label>
+                            <span id="profileCreateDate"></span>
+                        </div>
+                    </div>
+
+                    <div class="info-card">
+                        <h3>Статистика</h3>
+                        <div class="info-item">
+                            <label>Всего задач:</label>
+                            <span id="totalTasks">0</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Активных задач:</label>
+                            <span id="activeTasks">0</span>
+                        </div>
+                        <div class="info-item">
+                            <label>Выполненных задач:</label>
+                            <span id="completedTasks">0</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Секция статистики -->
+            <section id="stats-section" class="content-section">
+                <div class="section-header">
+                    <h2>Статистика</h2>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">📊</div>
+                        <div class="stat-value" id="statTotalTasks">0</div>
+                        <div class="stat-label">Всего задач</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⏳</div>
+                        <div class="stat-value" id="statPendingTasks">0</div>
+                        <div class="stat-label">В процессе</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-value" id="statCompletedTasks">0</div>
+                        <div class="stat-label">Выполнено</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">📅</div>
+                        <div class="stat-value" id="statTodayTasks">0</div>
+                        <div class="stat-label">Сегодня</div>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h3>Продуктивность по дням</h3>
+                    <div id="productivityChart" class="chart-placeholder">
+                        <p>График будет отображаться здесь</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+</div>
+
+<!-- Модальное окно создания задачи -->
+<div id="taskModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Новая задача</h3>
+            <button class="close-btn" onclick="closeTaskModal()">&times;</button>
+        </div>
+        <form id="taskForm">
+            <div class="form-group">
+                <label for="taskTitle">Название задачи *</label>
+                <input type="text" id="taskTitle" required>
+            </div>
+            <div class="form-group">
+                <label for="taskDescription">Описание</label>
+                <textarea id="taskDescription" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="taskPriority">Приоритет</label>
+                <select id="taskPriority">
+                    <option value="low">Низкий</option>
+                    <option value="medium" selected>Средний</option>
+                    <option value="high">Высокий</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="taskDueDate">Срок выполнения</label>
+                <input type="date" id="taskDueDate">
+            </div>
+            <div class="form-actions">
+                <button type="button" onclick="closeTaskModal()">Отмена</button>
+                <button type="submit">Создать задачу</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script src="/static/dashboard/script.js"></script>
+</body>
+</html>

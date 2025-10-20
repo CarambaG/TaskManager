@@ -2,63 +2,107 @@ package main
 
 import (
 	"TaskManager/internal/config"
-	"TaskManager/internal/controllers"
 	"TaskManager/internal/database"
+	"TaskManager/internal/services"
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
 	_ "github.com/lib/pq"
 )
 
-type App struct {
-	db *sql.DB
-}
-
 func main() {
+	// Загрузка конфигурации
 	cfg := config.Load()
-	var db *sql.DB = nil
 
-	//Подключение к БД
+	// Подключение к БД
 	db, err := database.ConnectDatabase(cfg)
 	if err != nil {
-		//fmt.Println(cfg)
 		log.Fatal(err)
 	}
 	defer db.Close()
 
-	//Соединение с БД
+	// Проверка соединения с БД
 	if err := database.PingDatabase(db); err != nil {
-		//fmt.Println(cfg)
 		log.Fatal(err)
 	}
 	fmt.Println("Успешное подключение к БД")
 
-	// Создаем экземпляр приложения
-	app := &App{db: db}
+	// Создаем JWT сервис
+	jwtService := services.NewJWTService(cfg.JWTSecret)
 
-	// Проверяем существование папки static
-	/*if _, err := os.Stat("./static"); os.IsNotExist(err) {
-		log.Fatal("Папка 'static' не найдена.")
-	}*/
+	// Создаем экземпляр приложения
+	app := NewApp(db, cfg, jwtService)
 
 	// Обслуживание статических файлов
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 
 	// API маршруты
-	http.HandleFunc("/api/register", loggingMiddleware(enableCORS(app.registerHandler)))
-	http.HandleFunc("/api/login", loggingMiddleware(enableCORS(app.loginHandler)))
-	http.HandleFunc("/api/health", loggingMiddleware(enableCORS(app.healthHandler)))
+	http.HandleFunc("/api/register", app.apiMiddleware(app.registerHandler))
+	http.HandleFunc("/api/login", app.apiMiddleware(app.loginHandler))
+	http.HandleFunc("/api/refresh", app.apiMiddleware(app.refreshTokenHandler))
+	http.HandleFunc("/api/health", app.apiMiddleware(app.healthHandler))
 
-	// Главная страница
+	// Защищенные API маршруты
+	http.HandleFunc("/api/me", app.protectedApiMiddleware(app.meHandler))
+
+	// Обработчик для задач - объединяем GET и POST в один маршрут
+	http.HandleFunc("/api/tasks", app.protectedApiMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			app.getTasksHandler(w, r)
+		case http.MethodPost:
+			app.createTaskHandler(w, r)
+		default:
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			json.NewEncoder(w).Encode(map[string]string{"error": "Метод не поддерживается"})
+		}
+	}))
+
+	// Обработчик для операций с конкретной задачей (по ID)
+	http.HandleFunc("/api/tasks/", app.protectedApiMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		// Извлекаем task ID из URL
+		path := strings.TrimPrefix(r.URL.Path, "/api/tasks/")
+		parts := strings.Split(path, "/")
+
+		if len(parts) == 0 || parts[0] == "" {
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]string{"error": "ID задачи не указан"})
+			return
+		}
+
+		//taskID := parts[0]
+
+		// Обрабатываем разные методы
+		switch r.Method {
+		case http.MethodPut:
+			// Проверяем, это toggle или обычное обновление
+			if len(parts) > 1 && parts[1] == "toggle" {
+				app.toggleTaskStatusHandler(w, r)
+			} else {
+				// Здесь можно добавить обработчик для обычного обновления задачи
+				w.WriteHeader(http.StatusNotImplemented)
+				json.NewEncoder(w).Encode(map[string]string{"error": "Обновление задачи пока не реализовано"})
+			}
+		case http.MethodDelete:
+			app.deleteTaskHandler(w, r)
+		default:
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			json.NewEncoder(w).Encode(map[string]string{"error": "Метод не поддерживается"})
+		}
+	}))
+
+	// Страницы
 	http.HandleFunc("/", app.indexHandler)
+	http.HandleFunc("/dashboard", app.dashboardHandler)
+	//http.HandleFunc("/dashboard", app.protectedApiMiddleware(app.dashboardHandler))
 
 	port := cfg.GetServerPortString()
 	server := &http.Server{
@@ -66,9 +110,11 @@ func main() {
 		Handler: nil,
 	}
 
+	// Запуск сервера в горутине
 	go func() {
 		fmt.Printf("Сервер запущен на порту %s\n", port)
 		fmt.Printf("Откройте в браузере: http://localhost%s\n", port)
+		fmt.Printf("Dashboard: http://localhost%s/dashboard\n", port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Ошибка сервера: %v", err)
 		}
@@ -87,154 +133,4 @@ func main() {
 		log.Fatalf("Ошибка при завершении сервера: %v", err)
 	}
 	fmt.Println("Сервер корректно завершен")
-}
-
-// CORS middleware
-func enableCORS(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
-
-		next(w, r)
-	}
-}
-
-// Middleware для логирования
-func loggingMiddleware(next http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
-		log.Printf("Started %s %s", r.Method, r.URL.Path)
-
-		lrw := &loggingResponseWriter{ResponseWriter: w, statusCode: http.StatusOK}
-		next(lrw, r)
-
-		duration := time.Since(start)
-		log.Printf("Completed %s %s %d %v", r.Method, r.URL.Path, lrw.statusCode, duration)
-	}
-}
-
-type loggingResponseWriter struct {
-	http.ResponseWriter
-	statusCode int
-}
-
-func (lrw *loggingResponseWriter) WriteHeader(code int) {
-	lrw.statusCode = code
-	lrw.ResponseWriter.WriteHeader(code)
-}
-
-// Обработчик главной страницы
-func (a *App) indexHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Метод не поддерживается", http.StatusMethodNotAllowed)
-		return
-	}
-
-	// Отдаем HTML файл
-	http.ServeFile(w, r, "./internal/views/registerForm/index.html")
-}
-
-// Обработчик регистрации
-func (a *App) registerHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Метод не поддерживается", http.StatusMethodNotAllowed)
-		return
-	}
-
-	var req struct {
-		Login    string `json:"login"`
-		Password string `json:"password"`
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Неверный JSON"})
-		return
-	}
-
-	// Создаем пользователя
-	newUser, err := controllers.CreateUser(a.db, req.Login, req.Password)
-	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
-		return
-	}
-
-	// Формируем ответ
-	response := struct {
-		ID    string `json:"id"`
-		Login string `json:"login"`
-	}{
-		ID:    newUser.ID,
-		Login: newUser.Login,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-}
-
-// Обработчик аутентификации
-func (a *App) loginHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusMethodNotAllowed)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Неверный логин или пароль"})
-		return
-	}
-
-	var req struct {
-		Login    string `json:"login"`
-		Password string `json:"password"`
-	}
-
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Неверный JSON", http.StatusBadRequest)
-		return
-	}
-
-	// Аутентифицируем пользователя
-	authUser, err := controllers.Authenticate(a.db, req.Login, req.Password)
-	if err != nil {
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusUnauthorized)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Неверный логин или пароль"})
-		return
-	}
-
-	// Формируем ответ
-	response := struct {
-		ID    string `json:"id"`
-		Login string `json:"login"`
-	}{
-		ID:    authUser.ID,
-		Login: authUser.Login,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-}
-
-// Простой health check
-func (a *App) healthHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "Метод не поддерживается", http.StatusMethodNotAllowed)
-		return
-	}
-
-	response := struct {
-		Status string `json:"status"`
-	}{
-		Status: "OK",
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
 }

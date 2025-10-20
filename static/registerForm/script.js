@@ -109,10 +109,18 @@ loginForm.addEventListener('submit', async (e) => {
         const result = await response.json();
 
         if (response.ok) {
+            // Сохраняем токен в localStorage
+            localStorage.setItem('authToken', result.token);
+            localStorage.setItem('userId', result.id);
+            localStorage.setItem('userLogin', result.login);
+
             loginResult.className = 'result success';
-            loginResult.textContent = `✅ Успешный вход! Добро пожаловать!`;
+            loginResult.textContent = `✅ Успешный вход! Добро пожаловать, ${result.login}!`;
             addLog(`Пользователь ${userData.login} успешно вошел в систему`, 'success');
             loginForm.reset();
+
+            // Немедленный редирект на dashboard
+            window.location.href = '/dashboard';
         } else {
             throw new Error(result.error || 'Ошибка входа');
         }
@@ -121,6 +129,54 @@ loginForm.addEventListener('submit', async (e) => {
         loginResult.textContent = `❌ Ошибка: ${error.message}`;
         addLog(`Ошибка входа: ${error.message}`, 'error');
     }
+});
+
+// Функция для получения заголовков с токеном
+function getAuthHeaders() {
+    const token = localStorage.getItem('authToken');
+    return {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+    };
+}
+
+// Пример защищенного запроса
+async function makeProtectedRequest() {
+    try {
+        const response = await fetch(`${API_BASE}/protected`, {
+            method: 'GET',
+            headers: getAuthHeaders()
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Protected data:', data);
+        } else if (response.status === 401) {
+            // Токен истек или невалиден
+            localStorage.removeItem('authToken');
+            window.location.href = '/'; // Перенаправляем на страницу входа
+        }
+    } catch (error) {
+        console.error('Protected request error:', error);
+    }
+}
+
+// Проверка аутентификации при загрузке страницы
+function checkAuth() {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+        // Пользователь аутентифицирован
+        addLog('Пользователь аутентифицирован', 'success');
+        // Можно обновить интерфейс
+    }
+}
+
+// Обновите инициализацию
+document.addEventListener('DOMContentLoaded', () => {
+    addLog('Веб-интерфейс инициализирован', 'info');
+    setupFormValidation();
+    //checkHealth();
+    checkAuth(); // Добавлено
 });
 
 // Валидация форм
@@ -150,4 +206,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Периодическая проверка здоровья
     //setInterval(checkHealth, 30000);
+});
+
+// Проверка, если пользователь уже вошел
+function checkIfLoggedIn() {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+        // Если уже вошел, редиректим на dashboard
+        window.location.href = '/dashboard';
+    }
+}
+
+// Обновите инициализацию на главной странице
+document.addEventListener('DOMContentLoaded', () => {
+    addLog('Веб-интерфейс инициализирован', 'info');
+    setupFormValidation();
+    //checkHealth();
+    checkIfLoggedIn(); // Проверяем, не вошел ли уже пользователь
 });
