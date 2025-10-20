@@ -2,7 +2,8 @@ package main
 
 import (
 	"TaskManager/application/user"
-	"TaskManager/pkg/config"
+	"TaskManager/internal/config"
+	"TaskManager/internal/database"
 	"context"
 	"database/sql"
 	"encoding/json"
@@ -23,29 +24,33 @@ type App struct {
 
 func main() {
 	cfg := config.Load()
+	var db *sql.DB = nil
 
-	db, err := sql.Open("postgres", cfg.GetConnectionString())
+	//Подключение к БД
+	db, err := database.ConnectDatabase(cfg)
 	if err != nil {
-		log.Fatal("Ошибка подключения к БД: ", err)
+		//fmt.Println(cfg)
+		log.Fatal(err)
 	}
 	defer db.Close()
 
-	if err := db.Ping(); err != nil {
-		log.Fatal("Не удалось подключиться к БД.")
+	//Соединение с БД
+	if err := database.PingDatabase(db); err != nil {
+		//fmt.Println(cfg)
+		log.Fatal(err)
 	}
-
 	fmt.Println("Успешное подключение к БД")
 
 	// Создаем экземпляр приложения
 	app := &App{db: db}
 
 	// Проверяем существование папки static
-	if _, err := os.Stat("./static"); os.IsNotExist(err) {
-		log.Fatal("Папка 'static' не найдена. Создайте папку static с файлами index.html, style.css и script.js")
-	}
+	/*if _, err := os.Stat("./static"); os.IsNotExist(err) {
+		log.Fatal("Папка 'static' не найдена.")
+	}*/
 
 	// Обслуживание статических файлов
-	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
+	//http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 
 	// API маршруты
 	http.HandleFunc("/api/register", loggingMiddleware(enableCORS(app.registerHandler)))
@@ -55,7 +60,7 @@ func main() {
 	// Главная страница
 	http.HandleFunc("/", app.indexHandler)
 
-	port := ":8080"
+	port := cfg.GetServerPortString()
 	server := &http.Server{
 		Addr:    port,
 		Handler: nil,
@@ -132,7 +137,7 @@ func (a *App) indexHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Отдаем HTML файл
-	http.ServeFile(w, r, "./static/index.html")
+	http.ServeFile(w, r, "./internal/views/registerForm/index.html")
 }
 
 // Обработчик регистрации
