@@ -1,6 +1,7 @@
-package user
+package controllers
 
 import (
+	"TaskManager/internal/models"
 	"database/sql"
 	"errors"
 	"fmt"
@@ -9,19 +10,12 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type User struct {
-	ID       string    `json:"id"`
-	Login    string    `json:"login"`
-	PassHash string    `json:"-"`
-	CreateAt time.Time `json:"create_at"`
-}
-
 func CheckPasswordHash(password, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil
 }
 
-func CreateUser(db *sql.DB, login, pass string) (*User, error) {
+func CreateUser(db *sql.DB, login, pass string) (*models.User, error) {
 	// Валидация входных данных
 	if login == "" || pass == "" {
 		return nil, errors.New("логин и пароль не могут быть пустыми")
@@ -46,7 +40,7 @@ func CreateUser(db *sql.DB, login, pass string) (*User, error) {
 	}
 
 	//Создаем пользователя
-	user := User{
+	user := models.User{
 		Login:    login,
 		PassHash: string(hash),
 		CreateAt: time.Now(),
@@ -63,13 +57,13 @@ func CreateUser(db *sql.DB, login, pass string) (*User, error) {
 	return &user, nil
 }
 
-func Authenticate(db *sql.DB, login, password string) (*User, error) {
+func Authenticate(db *sql.DB, login, password string) (*models.User, error) {
 	// Валидация
 	if login == "" || password == "" {
 		return nil, errors.New("логин и пароль не могут быть пустыми")
 	}
 
-	var user User
+	var user models.User
 
 	err := db.QueryRow(
 		"SELECT id, pass FROM users WHERE login = $1",

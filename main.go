@@ -1,8 +1,8 @@
 package main
 
 import (
-	"TaskManager/application/user"
 	"TaskManager/internal/config"
+	"TaskManager/internal/controllers"
 	"TaskManager/internal/database"
 	"context"
 	"database/sql"
@@ -160,7 +160,7 @@ func (a *App) registerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Создаем пользователя
-	newUser, err := user.CreateUser(a.db, req.Login, req.Password)
+	newUser, err := controllers.CreateUser(a.db, req.Login, req.Password)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
@@ -201,7 +201,7 @@ func (a *App) loginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Аутентифицируем пользователя
-	authUser, err := user.Authenticate(a.db, req.Login, req.Password)
+	authUser, err := controllers.Authenticate(a.db, req.Login, req.Password)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
