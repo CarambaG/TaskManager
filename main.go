@@ -50,7 +50,7 @@ func main() {
 	}*/
 
 	// Обслуживание статических файлов
-	//http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 
 	// API маршруты
 	http.HandleFunc("/api/register", loggingMiddleware(enableCORS(app.registerHandler)))
