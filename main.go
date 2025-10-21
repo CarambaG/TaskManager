@@ -100,7 +100,7 @@ func main() {
 	}))
 
 	// Страницы
-	http.HandleFunc("/", app.indexHandler)
+	http.HandleFunc("/", app.registerFormHandler)
 	http.HandleFunc("/dashboard", app.dashboardHandler)
 	//http.HandleFunc("/dashboard", app.protectedApiMiddleware(app.dashboardHandler))
 

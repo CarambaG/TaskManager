@@ -111,8 +111,7 @@ loginForm.addEventListener('submit', async (e) => {
         if (response.ok) {
             // Сохраняем токен в localStorage
             localStorage.setItem('authToken', result.token);
-            localStorage.setItem('userId', result.id);
-            localStorage.setItem('userLogin', result.login);
+            //localStorage.setItem('userId', result.id);
 
             loginResult.className = 'result success';
             loginResult.textContent = `✅ Успешный вход! Добро пожаловать, ${result.login}!`;
@@ -203,6 +202,6 @@ function checkIfLoggedIn() {
 document.addEventListener('DOMContentLoaded', () => {
     addLog('Веб-интерфейс инициализирован', 'info');
     setupFormValidation();
-    //checkHealth();
+    checkHealth();
     checkIfLoggedIn(); // Проверяем, не вошел ли уже пользователь
 });

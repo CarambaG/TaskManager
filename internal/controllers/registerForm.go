@@ -66,9 +66,9 @@ func Authenticate(db *sql.DB, login, password string) (*models.User, error) {
 	var user models.User
 
 	err := db.QueryRow(
-		"SELECT id, pass FROM users WHERE login = $1",
+		"SELECT id, login, pass FROM users WHERE login = $1",
 		login,
-	).Scan(&user.ID, &user.PassHash)
+	).Scan(&user.ID, &user.Login, &user.PassHash)
 	if err == sql.ErrNoRows {
 		return nil, errors.New("Пользователь не найден")
 	}

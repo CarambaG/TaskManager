@@ -39,7 +39,7 @@ func NewApp(db *sql.DB, cfg *config.Config, jwtService *services.JWTService) *Ap
 }
 
 // Обработчик главной страницы
-func (a *App) indexHandler(w http.ResponseWriter, r *http.Request) {
+func (a *App) registerFormHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		http.Error(w, "Метод не поддерживается", http.StatusMethodNotAllowed)
 		return
@@ -143,12 +143,10 @@ func (a *App) loginHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Формируем ответ
 	response := struct {
-		ID    string `json:"id"`
-		Login string `json:"login"`
+		//ID    string `json:"id"`
 		Token string `json:"token"`
 	}{
-		ID:    authUser.ID,
-		Login: authUser.Login,
+		//ID:    authUser.ID,
 		Token: token,
 	}
 

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/google/uuid"
 )
 
 type Claims struct {
@@ -32,6 +33,7 @@ func (s *JWTService) GenerateToken(user *models.User) (string, error) {
 			ExpiresAt: jwt.NewNumericDate(expirationTime),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			Subject:   user.ID,
+			ID:        uuid.NewString(),
 		},
 	}
 
