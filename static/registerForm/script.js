@@ -171,14 +171,6 @@ function checkAuth() {
     }
 }
 
-// Обновите инициализацию
-document.addEventListener('DOMContentLoaded', () => {
-    addLog('Веб-интерфейс инициализирован', 'info');
-    setupFormValidation();
-    //checkHealth();
-    checkAuth(); // Добавлено
-});
-
 // Валидация форм
 function setupFormValidation() {
     const forms = [registerForm, loginForm];
@@ -198,16 +190,6 @@ function setupFormValidation() {
     });
 }
 
-// Инициализация при загрузке страницы
-document.addEventListener('DOMContentLoaded', () => {
-    addLog('Веб-интерфейс инициализирован', 'info');
-    setupFormValidation();
-    checkHealth();
-
-    // Периодическая проверка здоровья
-    //setInterval(checkHealth, 30000);
-});
-
 // Проверка, если пользователь уже вошел
 function checkIfLoggedIn() {
     const token = localStorage.getItem('authToken');
@@ -217,7 +199,7 @@ function checkIfLoggedIn() {
     }
 }
 
-// Обновите инициализацию на главной странице
+// Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
     addLog('Веб-интерфейс инициализирован', 'info');
     setupFormValidation();
