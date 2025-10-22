@@ -3,6 +3,7 @@ package main
 import (
 	"TaskManager/internal/config"
 	"TaskManager/internal/database"
+	"TaskManager/internal/handlers"
 	"TaskManager/internal/services"
 	"context"
 	"encoding/json"
@@ -39,27 +40,27 @@ func main() {
 	jwtService := services.NewJWTService(cfg.JWTSecret)
 
 	// Создаем экземпляр приложения
-	app := NewApp(db, cfg, jwtService)
+	app := handlers.NewApp(db, cfg, jwtService)
 
 	// Обслуживание статических файлов
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
 
 	// API маршруты
-	http.HandleFunc("/api/register", app.apiMiddleware(app.registerHandler))
-	http.HandleFunc("/api/login", app.apiMiddleware(app.loginHandler))
-	http.HandleFunc("/api/refresh", app.apiMiddleware(app.refreshTokenHandler))
-	http.HandleFunc("/api/health", app.apiMiddleware(app.healthHandler))
+	http.HandleFunc("/api/register", app.ApiMiddleware(app.RegisterHandler))
+	http.HandleFunc("/api/login", app.ApiMiddleware(app.LoginHandler))
+	http.HandleFunc("/api/refresh", app.ApiMiddleware(app.RefreshTokenHandler))
+	http.HandleFunc("/api/health", app.ApiMiddleware(app.HealthHandler))
 
 	// Защищенные API маршруты
-	http.HandleFunc("/api/me", app.protectedApiMiddleware(app.meHandler))
+	http.HandleFunc("/api/me", app.ProtectedApiMiddleware(app.MeHandler))
 
 	// Обработчик для задач - объединяем GET и POST в один маршрут
-	http.HandleFunc("/api/tasks", app.protectedApiMiddleware(func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/tasks", app.ProtectedApiMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
-			app.getTasksHandler(w, r)
+			app.GetTasksHandler(w, r)
 		case http.MethodPost:
-			app.createTaskHandler(w, r)
+			app.CreateTaskHandler(w, r)
 		default:
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			json.NewEncoder(w).Encode(map[string]string{"error": "Метод не поддерживается"})
@@ -67,7 +68,7 @@ func main() {
 	}))
 
 	// Обработчик для операций с конкретной задачей (по ID)
-	http.HandleFunc("/api/tasks/", app.protectedApiMiddleware(func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/tasks/", app.ProtectedApiMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		// Извлекаем task ID из URL
 		path := strings.TrimPrefix(r.URL.Path, "/api/tasks/")
 		parts := strings.Split(path, "/")
@@ -85,14 +86,14 @@ func main() {
 		case http.MethodPut:
 			// Проверяем, это toggle или обычное обновление
 			if len(parts) > 1 && parts[1] == "toggle" {
-				app.toggleTaskStatusHandler(w, r)
+				app.ToggleTaskStatusHandler(w, r)
 			} else {
 				// Здесь можно добавить обработчик для обычного обновления задачи
 				w.WriteHeader(http.StatusNotImplemented)
 				json.NewEncoder(w).Encode(map[string]string{"error": "Обновление задачи пока не реализовано"})
 			}
 		case http.MethodDelete:
-			app.deleteTaskHandler(w, r)
+			app.DeleteTaskHandler(w, r)
 		default:
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			json.NewEncoder(w).Encode(map[string]string{"error": "Метод не поддерживается"})
@@ -100,8 +101,8 @@ func main() {
 	}))
 
 	// Страницы
-	http.HandleFunc("/", app.registerFormHandler)
-	http.HandleFunc("/dashboard", app.dashboardHandler)
+	http.HandleFunc("/", app.RegisterFormHandler)
+	http.HandleFunc("/dashboard", app.DashboardHandler)
 	//http.HandleFunc("/dashboard", app.protectedApiMiddleware(app.dashboardHandler))
 
 	port := cfg.GetServerPortString()

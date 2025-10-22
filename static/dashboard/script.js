@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         await loadUserData();
         await loadTasks();
         setupEventListeners();
-        addLog('Панель управления загружена', 'success');
+       //addLog('Панель управления загружена', 'success');
     }
 });
 
