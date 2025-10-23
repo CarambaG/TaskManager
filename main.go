@@ -79,8 +79,6 @@ func main() {
 			return
 		}
 
-		//taskID := parts[0]
-
 		// Обрабатываем разные методы
 		switch r.Method {
 		case http.MethodPut:
