@@ -77,7 +77,6 @@ function displayUserData(user) {
     document.getElementById('userSince').textContent = `Зарегистрирован: ${new Date(user.create_at).toLocaleDateString()}`;
 
     // Обновление профиля
-    //document.getElementById('profileUserId').textContent = user.id;
     document.getElementById('profileLogin').textContent = user.login;
     document.getElementById('profileCreateDate').textContent = new Date(user.create_at).toLocaleDateString();
 }

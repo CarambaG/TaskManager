@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"TaskManager/internal/controllers"
+	"TaskManager/internal/models"
 	"TaskManager/internal/services"
 	"encoding/json"
 	"fmt"
@@ -64,28 +65,35 @@ func (a *App) CreateTaskHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var taskData struct {
+	/*var taskData struct {
 		Title       string `json:"title"`
 		Description string `json:"description"`
 		Priority    string `json:"priority"`
 		DueDate     string `json:"due_date"`
-	}
+	}*/
 
-	if err := json.NewDecoder(r.Body).Decode(&taskData); err != nil {
+	newTaskData := models.Task{}
+
+	if err := json.NewDecoder(r.Body).Decode(&newTaskData); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Неверный JSON"})
 		return
 	}
 
 	// Валидация данных
-	if taskData.Title == "" {
+	if newTaskData.Title == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Название задачи не может быть пустым"})
 		return
 	}
 
-	// Здесь будет логика создания задачи в БД
-	// Пока возвращаем успешный ответ
+	newTaskData.UserID = userClaims.UserID
+	err := controllers.CreateTaskDataBase(a.db, &newTaskData)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Ошибка при создании задачи"})
+		return
+	}
 
 	response := struct {
 		Message string `json:"message"`

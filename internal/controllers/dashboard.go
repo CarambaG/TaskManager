@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"time"
 )
 
 func GetTasks(UserID *string, db *sql.DB) (tasks []models.Task, err error) {
@@ -96,7 +97,8 @@ func ToggleTaskStatusDataBase(db *sql.DB, taskID *string, UserID *string) (err e
 
 	query2 := `
 		UPDATE tasks
-		SET status = $1
+		SET status = $1,
+		    updated_at = now()
 		WHERE id = $2
 	`
 
@@ -135,6 +137,32 @@ func DeleteTaskDataBase(db *sql.DB, taskID *string, UserID *string) (err error) 
 
 	if count == 0 {
 		return errors.New("задача не найдена")
+	}
+
+	return nil
+}
+
+func CreateTaskDataBase(db *sql.DB, taskData *models.Task) (err error) {
+	query := `
+		INSERT INTO tasks (user_id, deleted, title, description, status, priority, due_date, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+	`
+
+	fmt.Println(false, '\n', taskData.Title, '\n', taskData.Description, '\n', taskData.Status, '\n', taskData.Priority, '\n', taskData.DueDate, '\n', time.Now(), '\n', time.Now())
+
+	// Вставляем новую задачу в БД
+	_, err = db.Exec(query,
+		taskData.UserID,
+		false,
+		taskData.Title,
+		taskData.Description,
+		"active",
+		taskData.Priority,
+		taskData.DueDate,
+		time.Now(),
+		time.Now())
+	if err != nil {
+		return err
 	}
 
 	return nil
