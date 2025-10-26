@@ -2,6 +2,7 @@ const API_BASE = 'http://localhost:8080/api';
 
 // Элементы DOM
 let currentUser = null;
+let currentEditingTaskId = null;
 
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', async () => {
@@ -13,7 +14,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         await loadUserData();
         await loadTasks();
         setupEventListeners();
-       //addLog('Панель управления загружена', 'success');
     }
 });
 
@@ -21,7 +21,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function checkAuth() {
     const token = localStorage.getItem('authToken');
     if (!token) {
-        // Если токена нет, редиректим на главную страницу
         window.location.href = '/';
         return false;
     }
@@ -40,7 +39,6 @@ async function checkAuth() {
         return true;
     } catch (error) {
         console.error('Auth check failed:', error);
-        // Очищаем невалидный токен и редиректим
         localStorage.removeItem('authToken');
         localStorage.removeItem('userId');
         localStorage.removeItem('userLogin');
@@ -68,15 +66,10 @@ async function loadUserData() {
 
 // Отображение данных пользователя
 function displayUserData(user) {
-    // Обновление заголовка
     document.getElementById('userGreeting').textContent = `Добро пожаловать, ${user.login}!`;
-
-    // Обновление карточки пользователя
     document.getElementById('userInitials').textContent = user.login.charAt(0).toUpperCase();
     document.getElementById('userLogin').textContent = user.login;
     document.getElementById('userSince').textContent = `Зарегистрирован: ${new Date(user.create_at).toLocaleDateString()}`;
-
-    // Обновление профиля
     document.getElementById('profileLogin').textContent = user.login;
     document.getElementById('profileCreateDate').textContent = new Date(user.create_at).toLocaleDateString();
 }
@@ -107,7 +100,7 @@ function displayTasks(tasks) {
         tasksList.innerHTML = `
             <div class="empty-state">
                 <p>Задачи отсутствуют</p>
-                <button class="btn-primary" onclick="openTaskModal()">
+                <button class="btn-primary" onclick="resetAndOpenTaskModal()">
                     Создать первую задачу
                 </button>
             </div>
@@ -150,17 +143,15 @@ function updateStats(tasks) {
     const completedTasks = tasks.filter(task => task.status === 'completed').length;
     const activeTasks = totalTasks - completedTasks;
     const todayTasks = tasks.filter(task => {
+        if (!task.due_date) return false;
         const today = new Date().toDateString();
         const taskDate = new Date(task.due_date).toDateString();
         return taskDate === today;
     }).length;
 
-    // Обновление профиля
     document.getElementById('totalTasks').textContent = totalTasks;
     document.getElementById('activeTasks').textContent = activeTasks;
     document.getElementById('completedTasks').textContent = completedTasks;
-
-    // Обновление статистики
     document.getElementById('statTotalTasks').textContent = totalTasks;
     document.getElementById('statPendingTasks').textContent = activeTasks;
     document.getElementById('statCompletedTasks').textContent = completedTasks;
@@ -186,6 +177,28 @@ async function createTask(taskData) {
     } catch (error) {
         console.error('Failed to create task:', error);
         showNotification('Ошибка создания задачи', 'error');
+    }
+}
+
+// Функция обновления задачи
+async function updateTask(taskId, taskData) {
+    try {
+        const response = await fetch(`${API_BASE}/tasks/${taskId}`, {
+            method: 'PUT',
+            headers: getAuthHeaders(),
+            body: JSON.stringify(taskData)
+        });
+
+        if (response.ok) {
+            showNotification('Задача успешно обновлена', 'success');
+            closeTaskModal();
+            await loadTasks();
+        } else {
+            throw new Error('Failed to update task');
+        }
+    } catch (error) {
+        console.error('Failed to update task:', error);
+        showNotification('Ошибка обновления задачи', 'error');
     }
 }
 
@@ -232,9 +245,49 @@ async function deleteTask(taskId) {
     }
 }
 
+// Функция редактирования задачи
+async function editTask(taskId) {
+    try {
+        // Загружаем полные данные задачи с сервера
+        const response = await fetch(`${API_BASE}/tasks/${taskId}`, {
+            headers: getAuthHeaders()
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to load task data');
+        }
+
+        const task = await response.json();
+        currentEditingTaskId = taskId;
+
+        // Заполняем форму данными задачи
+        document.getElementById('taskTitle').value = task.title;
+        document.getElementById('taskDescription').value = task.description || '';
+        document.getElementById('taskPriority').value = task.priority;
+
+        if (task.due_date) {
+            const date = new Date(task.due_date);
+            const formattedDate = date.toISOString().split('T')[0];
+            document.getElementById('taskDueDate').value = formattedDate;
+        } else {
+            document.getElementById('taskDueDate').value = '';
+        }
+
+        // Меняем заголовок и текст кнопки
+        document.querySelector('#taskModal .modal-header h3').textContent = 'Редактировать задачу';
+        document.querySelector('#taskModal button[type="submit"]').textContent = 'Сохранить изменения';
+
+        // Открываем модальное окно
+        openTaskModal();
+    } catch (error) {
+        console.error('Failed to load task for editing:', error);
+        showNotification('Ошибка загрузки задачи', 'error');
+    }
+}
+
 // Настройка обработчиков событий
 function setupEventListeners() {
-    // Форма создания задачи
+    // Форма задачи
     document.getElementById('taskForm').addEventListener('submit', async (e) => {
         e.preventDefault();
 
@@ -245,7 +298,11 @@ function setupEventListeners() {
             due_date: document.getElementById('taskDueDate').value || null
         };
 
-        await createTask(taskData);
+        if (currentEditingTaskId) {
+            await updateTask(currentEditingTaskId, taskData);
+        } else {
+            await createTask(taskData);
+        }
     });
 
     // Фильтрация задач
@@ -253,9 +310,7 @@ function setupEventListeners() {
         btn.addEventListener('click', () => {
             document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
-
-            const filter = btn.dataset.filter;
-            filterTasks(filter);
+            filterTasks(btn.dataset.filter);
         });
     });
 
@@ -268,7 +323,6 @@ function setupEventListeners() {
 // Фильтрация задач
 function filterTasks(filter) {
     const tasks = document.querySelectorAll('.task-item');
-
     tasks.forEach(task => {
         switch (filter) {
             case 'active':
@@ -291,26 +345,17 @@ function searchTasks(query) {
     tasks.forEach(task => {
         const title = task.querySelector('.task-title').textContent.toLowerCase();
         const description = task.querySelector('.task-description')?.textContent.toLowerCase() || '';
-
-        if (title.includes(searchTerm) || description.includes(searchTerm)) {
-            task.style.display = 'block';
-        } else {
-            task.style.display = 'none';
-        }
+        task.style.display = (title.includes(searchTerm) || description.includes(searchTerm)) ? 'block' : 'none';
     });
 }
 
 // Навигация по секциям
 function showSection(sectionName) {
-    // Скрыть все секции
     document.querySelectorAll('.content-section').forEach(section => {
         section.classList.remove('active');
     });
-
-    // Показать выбранную секцию
     document.getElementById(`${sectionName}-section`).classList.add('active');
 
-    // Обновить активную кнопку навигации
     document.querySelectorAll('.nav-btn').forEach(btn => {
         btn.classList.remove('active');
     });
@@ -324,7 +369,19 @@ function openTaskModal() {
 
 function closeTaskModal() {
     document.getElementById('taskModal').style.display = 'none';
+    resetTaskModal();
+}
+
+function resetTaskModal() {
     document.getElementById('taskForm').reset();
+    currentEditingTaskId = null;
+    document.querySelector('#taskModal .modal-header h3').textContent = 'Новая задача';
+    document.querySelector('#taskModal button[type="submit"]').textContent = 'Создать задачу';
+}
+
+function resetAndOpenTaskModal() {
+    resetTaskModal();
+    openTaskModal();
 }
 
 // Выход из системы
@@ -360,12 +417,10 @@ function escapeHtml(text) {
 }
 
 function showNotification(message, type = 'info') {
-    // Создаем уведомление
     const notification = document.createElement('div');
     notification.className = `notification notification-${type}`;
     notification.textContent = message;
 
-    // Стили для уведомления
     notification.style.cssText = `
         position: fixed;
         top: 20px;
@@ -387,11 +442,7 @@ function showNotification(message, type = 'info') {
     }
 
     document.body.appendChild(notification);
-
-    // Автоматическое удаление через 5 секунд
-    setTimeout(() => {
-        notification.remove();
-    }, 5000);
+    setTimeout(() => notification.remove(), 5000);
 }
 
 // Обновление интерфейса

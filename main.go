@@ -86,12 +86,15 @@ func main() {
 			if len(parts) > 1 && parts[1] == "toggle" {
 				app.ToggleTaskStatusHandler(w, r)
 			} else {
+				app.SaveTaskDataHandler(w, r)
 				// Здесь можно добавить обработчик для обычного обновления задачи
-				w.WriteHeader(http.StatusNotImplemented)
-				json.NewEncoder(w).Encode(map[string]string{"error": "Обновление задачи пока не реализовано"})
+				//w.WriteHeader(http.StatusNotImplemented)
+				//json.NewEncoder(w).Encode(map[string]string{"error": "Обновление задачи пока не реализовано"})
 			}
 		case http.MethodDelete:
 			app.DeleteTaskHandler(w, r)
+		case http.MethodGet:
+			app.GetTaskHandler(w, r)
 		default:
 			w.WriteHeader(http.StatusMethodNotAllowed)
 			json.NewEncoder(w).Encode(map[string]string{"error": "Метод не поддерживается"})

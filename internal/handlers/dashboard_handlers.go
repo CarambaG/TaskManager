@@ -51,6 +51,55 @@ func (a *App) GetTasksHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(tasks)
 }
 
+// Обработчик получения задачи
+func (a *App) GetTaskHandler(w http.ResponseWriter, r *http.Request) {
+	// Извлекаем taskId из url
+	path := strings.TrimPrefix(r.URL.Path, "/api/tasks/")
+	parts := strings.Split(path, "/")
+
+	if len(parts) == 0 || parts[0] == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "ID задачи не указан"})
+		return
+	}
+
+	if r.Method != http.MethodGet {
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+
+	userClaims, ok := r.Context().Value("user").(*services.Claims)
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Невалидные данные пользователя"})
+		return
+	}
+
+	// Получение задач из БД
+	taskData, err := controllers.GetTaskDataBase(a.db, &userClaims.UserID, &parts[0])
+	if err != nil {
+		fmt.Println(err)
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Ошибка при поиске задачи пользователя"})
+		return
+	}
+
+	response := struct {
+		Title       string  `json:"title"`
+		Description string  `json:"description"`
+		Priority    string  `json:"priority"`
+		DueDate     *string `json:"due_date"`
+	}{
+		Title:       taskData.Title,
+		Description: taskData.Description,
+		Priority:    taskData.Priority,
+		DueDate:     taskData.DueDate,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
 // Обработчик создания задачи
 func (a *App) CreateTaskHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
@@ -64,13 +113,6 @@ func (a *App) CreateTaskHandler(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]string{"error": "Невалидные данные пользователя"})
 		return
 	}
-
-	/*var taskData struct {
-		Title       string `json:"title"`
-		Description string `json:"description"`
-		Priority    string `json:"priority"`
-		DueDate     string `json:"due_date"`
-	}*/
 
 	newTaskData := models.Task{}
 
@@ -189,6 +231,54 @@ func (a *App) DeleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 	}{
 		Message: "Задача удалена",
 		TaskID:  taskID,
+		UserID:  userClaims.UserID,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
+}
+
+func (a *App) SaveTaskDataHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("SaveTaskDataHandler") //-------------------------------------------------
+	path := strings.TrimPrefix(r.URL.Path, "/api/tasks/")
+	parts := strings.Split(path, "/")
+
+	if len(parts) == 0 || parts[0] == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "ID задачи не указан"})
+		return
+	}
+
+	userClaims, ok := r.Context().Value("user").(*services.Claims)
+	if !ok {
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Невалидные данные пользователя"})
+		return
+	}
+
+	newTaskData := models.Task{}
+	if err := json.NewDecoder(r.Body).Decode(&newTaskData); err != nil {
+		fmt.Println("newTaskDataDecode", err)
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Неверный JSON"})
+		return
+	}
+
+	err := controllers.SavaTaskDB(a.db, &userClaims.UserID, &parts[0], &newTaskData)
+	if err != nil {
+		fmt.Println("controllers.SavaTaskDB", err)
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
+		return
+	}
+
+	response := struct {
+		Message string `json:"message"`
+		TaskID  string `json:"task_id"`
+		UserID  string `json:"user_id"`
+	}{
+		Message: "Задача изменена",
+		TaskID:  parts[0],
 		UserID:  userClaims.UserID,
 	}
 

@@ -44,7 +44,6 @@ func GetTasks(UserID *string, db *sql.DB) (tasks []models.Task, err error) {
 			&task.UpdatedAt,
 		)
 		if err != nil {
-			fmt.Println(err)
 			return nil, fmt.Errorf("ошибка сканирования строки: %v", err)
 		}
 
@@ -75,7 +74,7 @@ func ToggleTaskStatusDataBase(db *sql.DB, taskID *string, UserID *string) (err e
 	}
 	defer tx.Rollback()
 
-	// Проверяем наличие задачи у конкретного пользователя
+	// Проверяем наличие задачи у пользователя
 	err = tx.QueryRow(query1, *taskID, *UserID).Scan(&task_ID, &task_Status)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -130,6 +129,7 @@ func DeleteTaskDataBase(db *sql.DB, taskID *string, UserID *string) (err error) 
 		return err
 	}
 
+	//Проверяем наличие задачи
 	count, err := result.RowsAffected()
 	if err != nil {
 		return err
@@ -163,6 +163,88 @@ func CreateTaskDataBase(db *sql.DB, taskData *models.Task) (err error) {
 		time.Now())
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func GetTaskDataBase(db *sql.DB, UserID *string, TaskId *string) (taskData models.Task, err error) {
+	taskData = models.Task{}
+	query := `
+        SELECT 
+            id,
+    		title,
+    		description,
+    		status,
+    		priority,
+    		due_date,
+    		created_at,
+    		updated_at
+        FROM tasks 
+        WHERE deleted = false
+        	and user_id = $1
+        	and id = $2
+    `
+
+	// Получение задачи и БД
+	err = db.QueryRow(query, *UserID, *TaskId).Scan(
+		&taskData.ID,
+		&taskData.Title,
+		&taskData.Description,
+		&taskData.Status,
+		&taskData.Priority,
+		&taskData.DueDate,
+		&taskData.CreatedAt,
+		&taskData.UpdatedAt,
+	)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return taskData, errors.New("задача не найдена")
+		}
+		return taskData, fmt.Errorf("ошибка запроса к БД: %v", err)
+	}
+
+	return taskData, nil
+}
+
+func SavaTaskDB(db *sql.DB, UserID *string, TaskID *string, newTaskData *models.Task) (err error) {
+	query := `
+		UPDATE tasks
+		SET 
+		    title = $1,
+		    description = $2,
+		    priority = $3,
+		    due_date = $4
+		WHERE deleted = false
+		  	AND user_id = $5 
+			AND id = $6
+	`
+
+	result, err := db.Exec(query,
+		newTaskData.Title,
+		newTaskData.Description,
+		newTaskData.Priority,
+		newTaskData.DueDate,
+		*UserID,
+		*TaskID,
+	)
+	fmt.Println(newTaskData.Title, "\n",
+		newTaskData.Description, "\n",
+		newTaskData.Priority, "\n",
+		newTaskData.DueDate, "\n",
+		*UserID, "\n",
+		*TaskID, "\n", err)
+	if err != nil {
+		return err
+	}
+
+	// Проверяем наличие задачи
+	count, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if count == 0 {
+		return errors.New("задача не найдена")
 	}
 
 	return nil
