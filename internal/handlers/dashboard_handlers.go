@@ -39,7 +39,7 @@ func (a *App) GetTasksHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Получение задач из БД
-	tasks, err := controllers.GetTasks(&userClaims.UserID, a.db)
+	tasks, err := controllers.GetTasksDataBase(&userClaims.UserID, a.db)
 	if err != nil {
 		fmt.Println(err)
 		w.WriteHeader(http.StatusUnauthorized)
@@ -239,7 +239,6 @@ func (a *App) DeleteTaskHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) SaveTaskDataHandler(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("SaveTaskDataHandler") //-------------------------------------------------
 	path := strings.TrimPrefix(r.URL.Path, "/api/tasks/")
 	parts := strings.Split(path, "/")
 
@@ -258,7 +257,6 @@ func (a *App) SaveTaskDataHandler(w http.ResponseWriter, r *http.Request) {
 
 	newTaskData := models.Task{}
 	if err := json.NewDecoder(r.Body).Decode(&newTaskData); err != nil {
-		fmt.Println("newTaskDataDecode", err)
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]string{"error": "Неверный JSON"})
 		return
@@ -266,7 +264,6 @@ func (a *App) SaveTaskDataHandler(w http.ResponseWriter, r *http.Request) {
 
 	err := controllers.SavaTaskDB(a.db, &userClaims.UserID, &parts[0], &newTaskData)
 	if err != nil {
-		fmt.Println("controllers.SavaTaskDB", err)
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]string{"error": err.Error()})
 		return

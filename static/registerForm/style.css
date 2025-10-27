@@ -150,18 +150,6 @@ button:active {
     color: #dc3545;
 }
 
-.logs-section {
-    background: #2c3e50;
-    color: white;
-    padding: 25px;
-    margin-top: 20px;
-}
-
-.logs-section h3 {
-    margin-bottom: 15px;
-    color: #ecf0f1;
-}
-
 .logs {
     background: #34495e;
     padding: 15px;

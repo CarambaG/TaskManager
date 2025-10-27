@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func GetTasks(UserID *string, db *sql.DB) (tasks []models.Task, err error) {
+func GetTasksDataBase(UserID *string, db *sql.DB) (tasks []models.Task, err error) {
 	tasks = []models.Task{}
 	query := `
         SELECT 
@@ -22,7 +22,8 @@ func GetTasks(UserID *string, db *sql.DB) (tasks []models.Task, err error) {
     		updated_at
         FROM tasks 
         WHERE deleted = false
-        	and user_id = $1
+        	AND user_id = $1
+        ORDER BY created_at DESC
     `
 	rows, err := db.Query(query, *UserID)
 	if err != nil {

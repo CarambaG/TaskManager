@@ -3,6 +3,10 @@ const API_BASE = 'http://localhost:8080/api';
 // Элементы DOM
 let currentUser = null;
 let currentEditingTaskId = null;
+let currentPage = 1;
+const tasksPerPage = 10;
+let allTasks = [];
+let filteredTasks = [];
 
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', async () => {
@@ -83,8 +87,11 @@ async function loadTasks() {
 
         if (response.ok) {
             const tasks = await response.json();
-            displayTasks(tasks);
+            allTasks = tasks;
+            filteredTasks = [...allTasks];
+            displayTasks();
             updateStats(tasks);
+            updatePagination();
         }
     } catch (error) {
         console.error('Failed to load tasks:', error);
@@ -92,11 +99,12 @@ async function loadTasks() {
     }
 }
 
-// Отображение задач
-function displayTasks(tasks) {
+// Отображение задач с пагинацией
+function displayTasks() {
     const tasksList = document.getElementById('tasksList');
+    const paginationContainer = document.getElementById('paginationContainer');
 
-    if (!tasks || tasks.length === 0) {
+    if (!filteredTasks || filteredTasks.length === 0) {
         tasksList.innerHTML = `
             <div class="empty-state">
                 <p>Задачи отсутствуют</p>
@@ -105,10 +113,16 @@ function displayTasks(tasks) {
                 </button>
             </div>
         `;
+        paginationContainer.style.display = 'none';
         return;
     }
 
-    tasksList.innerHTML = tasks.map(task => `
+    // Вычисляем задачи для текущей страницы
+    const startIndex = (currentPage - 1) * tasksPerPage;
+    const endIndex = startIndex + tasksPerPage;
+    const tasksToShow = filteredTasks.slice(startIndex, endIndex);
+
+    tasksList.innerHTML = tasksToShow.map(task => `
         <div class="task-item" data-task-id="${task.id}" data-status="${task.status}">
             <div class="task-header">
                 <div class="task-title">${escapeHtml(task.title)}</div>
@@ -135,6 +149,92 @@ function displayTasks(tasks) {
             </div>
         </div>
     `).join('');
+
+    // Показываем пагинацию если есть задачи
+    paginationContainer.style.display = filteredTasks.length > tasksPerPage ? 'block' : 'none';
+
+    // Обновляем информацию о количестве задач
+    document.getElementById('tasksShown').textContent = tasksToShow.length;
+    document.getElementById('tasksTotal').textContent = filteredTasks.length;
+}
+
+// Обновление пагинации
+function updatePagination() {
+    const totalPages = Math.ceil(filteredTasks.length / tasksPerPage);
+    const pageNumbers = document.getElementById('pageNumbers');
+    const prevButton = document.getElementById('prevPage');
+    const nextButton = document.getElementById('nextPage');
+
+    // Обновляем кнопки навигации
+    prevButton.disabled = currentPage === 1;
+    nextButton.disabled = currentPage === totalPages;
+
+    // Генерируем номера страниц
+    pageNumbers.innerHTML = '';
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+    if (endPage - startPage + 1 < maxVisiblePages) {
+        startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    // Кнопка для первой страницы
+    if (startPage > 1) {
+        const firstPageButton = document.createElement('button');
+        firstPageButton.className = 'page-number';
+        firstPageButton.textContent = '1';
+        firstPageButton.onclick = () => changePage(1);
+        pageNumbers.appendChild(firstPageButton);
+
+        if (startPage > 2) {
+            const ellipsis = document.createElement('span');
+            ellipsis.className = 'page-ellipsis';
+            ellipsis.textContent = '...';
+            pageNumbers.appendChild(ellipsis);
+        }
+    }
+
+    // Номера страниц
+    for (let i = startPage; i <= endPage; i++) {
+        const pageButton = document.createElement('button');
+        pageButton.className = `page-number ${i === currentPage ? 'active' : ''}`;
+        pageButton.textContent = i;
+        pageButton.onclick = () => changePage(i);
+        pageNumbers.appendChild(pageButton);
+    }
+
+    // Кнопка для последней страницы
+    if (endPage < totalPages) {
+        if (endPage < totalPages - 1) {
+            const ellipsis = document.createElement('span');
+            ellipsis.className = 'page-ellipsis';
+            ellipsis.textContent = '...';
+            pageNumbers.appendChild(ellipsis);
+        }
+
+        const lastPageButton = document.createElement('button');
+        lastPageButton.className = 'page-number';
+        lastPageButton.textContent = totalPages;
+        lastPageButton.onclick = () => changePage(totalPages);
+        pageNumbers.appendChild(lastPageButton);
+    }
+}
+
+// Смена страницы
+function changePage(page) {
+    const totalPages = Math.ceil(filteredTasks.length / tasksPerPage);
+
+    if (page < 1 || page > totalPages) {
+        return;
+    }
+
+    currentPage = page;
+    displayTasks();
+    updatePagination();
+
+    // Прокрутка к верху списка задач
+    document.getElementById('tasksList').scrollIntoView({ behavior: 'smooth' });
 }
 
 // Обновление статистики
@@ -322,31 +422,43 @@ function setupEventListeners() {
 
 // Фильтрация задач
 function filterTasks(filter) {
-    const tasks = document.querySelectorAll('.task-item');
-    tasks.forEach(task => {
-        switch (filter) {
-            case 'active':
-                task.style.display = task.dataset.status === 'active' ? 'block' : 'none';
-                break;
-            case 'completed':
-                task.style.display = task.dataset.status === 'completed' ? 'block' : 'none';
-                break;
-            default:
-                task.style.display = 'block';
-        }
-    });
+    currentPage = 1; // Сбрасываем на первую страницу при фильтрации
+
+    switch (filter) {
+        case 'active':
+            filteredTasks = allTasks.filter(task => task.status === 'active');
+            break;
+        case 'completed':
+            filteredTasks = allTasks.filter(task => task.status === 'completed');
+            break;
+        default:
+            filteredTasks = [...allTasks];
+    }
+
+    displayTasks();
+    updatePagination();
 }
 
 // Поиск задач
 function searchTasks(query) {
-    const tasks = document.querySelectorAll('.task-item');
+    currentPage = 1; // Сбрасываем на первую страницу при поиске
     const searchTerm = query.toLowerCase();
 
-    tasks.forEach(task => {
-        const title = task.querySelector('.task-title').textContent.toLowerCase();
-        const description = task.querySelector('.task-description')?.textContent.toLowerCase() || '';
-        task.style.display = (title.includes(searchTerm) || description.includes(searchTerm)) ? 'block' : 'none';
+    if (!searchTerm) {
+        // Если поисковый запрос пустой, показываем все задачи
+        const activeFilter = document.querySelector('.filter-btn.active').dataset.filter;
+        filterTasks(activeFilter);
+        return;
+    }
+
+    filteredTasks = allTasks.filter(task => {
+        const title = task.title.toLowerCase();
+        const description = task.description ? task.description.toLowerCase() : '';
+        return title.includes(searchTerm) || description.includes(searchTerm);
     });
+
+    displayTasks();
+    updatePagination();
 }
 
 // Навигация по секциям

@@ -72,6 +72,22 @@
                         </button>
                     </div>
                 </div>
+
+                <!-- Пагинация -->
+                <div class="pagination-container" id="paginationContainer" style="display: none;">
+                    <div class="pagination">
+                        <button id="prevPage" class="pagination-btn" onclick="changePage(currentPage - 1)">
+                            ‹ Назад
+                        </button>
+                        <div class="page-numbers" id="pageNumbers"></div>
+                        <button id="nextPage" class="pagination-btn" onclick="changePage(currentPage + 1)">
+                            Вперед ›
+                        </button>
+                    </div>
+                    <div class="pagination-info">
+                        Показано <span id="tasksShown">0</span> из <span id="tasksTotal">0</span> задач
+                    </div>
+                </div>
             </section>
 
             <!-- Секция профиля -->
@@ -83,10 +99,6 @@
                 <div class="profile-info">
                     <div class="info-card">
                         <h3>Основная информация</h3>
-                        <!--div class="info-item">
-                            <label>ID пользователя:</label>
-                            <span id="profileUserId"></span>
-                        </div-->
                         <div class="info-item">
                             <label>Логин:</label>
                             <span id="profileLogin"></span>

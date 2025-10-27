@@ -10,20 +10,9 @@ const statusIndicator = document.getElementById('statusIndicator');
 const statusText = document.getElementById('statusText');
 const logsContainer = document.getElementById('logs');
 
-// Логирование
-function addLog(message, type = 'info') {
-    const timestamp = new Date().toLocaleTimeString();
-    const logEntry = document.createElement('div');
-    logEntry.className = `log-entry log-${type}`;
-    logEntry.textContent = `[${timestamp}] ${message}`;
-    logsContainer.appendChild(logEntry);
-    logsContainer.scrollTop = logsContainer.scrollHeight;
-}
-
 // Проверка здоровья системы
 async function checkHealth() {
     try {
-        addLog('Проверка статуса сервера...', 'info');
         console.log('Sending request to:', `${API_BASE}/health`);
 
         const response = await fetch(`${API_BASE}/health`);
@@ -34,7 +23,6 @@ async function checkHealth() {
             console.log('Health check data:', data);
             statusIndicator.className = 'status-indicator status-online';
             statusText.textContent = `Система работает (${data.status})`;
-            addLog('Сервер работает нормально', 'success');
         } else {
             console.log('Health check failed with status:', response.status);
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -43,7 +31,6 @@ async function checkHealth() {
         console.error('Health check error:', error);
         statusIndicator.className = 'status-indicator status-offline';
         statusText.textContent = 'Сервер недоступен';
-        addLog(`Ошибка подключения: ${error.message}`, 'error');
     }
 }
 
@@ -57,7 +44,6 @@ registerForm.addEventListener('submit', async (e) => {
         password: formData.get('password')
     };
 
-    addLog(`Попытка регистрации пользователя: ${userData.login}`, 'info');
 
     try {
         const response = await fetch(`${API_BASE}/register`, {
@@ -72,16 +58,14 @@ registerForm.addEventListener('submit', async (e) => {
 
         if (response.ok) {
             registerResult.className = 'result success';
-            registerResult.textContent = `✅ Пользователь ${result.login} успешно зарегистрирован! ID: ${result.id}`;
-            addLog(`Пользователь ${userData.login} успешно зарегистрирован`, 'success');
+            registerResult.textContent = `Пользователь ${result.login} успешно зарегистрирован!`;
             registerForm.reset();
         } else {
             throw new Error(result.error || 'Ошибка регистрации');
         }
     } catch (error) {
         registerResult.className = 'result error';
-        registerResult.textContent = `❌ Ошибка: ${error.message}`;
-        addLog(`Ошибка регистрации: ${error.message}`, 'error');
+        registerResult.textContent = `Ошибка: ${error.message}`;
     }
 });
 
@@ -94,8 +78,6 @@ loginForm.addEventListener('submit', async (e) => {
         login: formData.get('login'),
         password: formData.get('password')
     };
-
-    addLog(`Попытка входа пользователя: ${userData.login}`, 'info');
 
     try {
         const response = await fetch(`${API_BASE}/login`, {
@@ -114,8 +96,7 @@ loginForm.addEventListener('submit', async (e) => {
             //localStorage.setItem('userId', result.id);
 
             loginResult.className = 'result success';
-            loginResult.textContent = `✅ Успешный вход! Добро пожаловать, ${result.login}!`;
-            addLog(`Пользователь ${userData.login} успешно вошел в систему`, 'success');
+            loginResult.textContent = `Успешный вход! Добро пожаловать, ${result.login}!`;
             loginForm.reset();
 
             // Немедленный редирект на dashboard
@@ -125,8 +106,7 @@ loginForm.addEventListener('submit', async (e) => {
         }
     } catch (error) {
         loginResult.className = 'result error';
-        loginResult.textContent = `❌ Ошибка: ${error.message}`;
-        addLog(`Ошибка входа: ${error.message}`, 'error');
+        loginResult.textContent = `Ошибка: ${error.message}`;
     }
 });
 
@@ -165,7 +145,6 @@ function checkAuth() {
     const token = localStorage.getItem('authToken');
     if (token) {
         // Пользователь аутентифицирован
-        addLog('Пользователь аутентифицирован', 'success');
         // Можно обновить интерфейс
     }
 }
@@ -200,7 +179,6 @@ function checkIfLoggedIn() {
 
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
-    addLog('Веб-интерфейс инициализирован', 'info');
     setupFormValidation();
     checkHealth();
     checkIfLoggedIn(); // Проверяем, не вошел ли уже пользователь
