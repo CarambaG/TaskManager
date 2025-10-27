@@ -8,34 +8,32 @@ import (
 )
 
 type Config struct {
-	DBHost     string
-	DBPort     string
-	DBUser     string
-	DBPassword string
-	DBName     string
-	DBSSLMode  string
-	ServerPort string
-	//DBMaxOpenConns string
-	//DBMaxIdleConns string
-	//DBMaxLifetime  string
-	JWTSecret string
+	DBHost                    string
+	DBPort                    string
+	DBUser                    string
+	DBPassword                string
+	DBName                    string
+	DBSSLMode                 string
+	ServerPort                string
+	JWTSecret                 string
+	NotificationServiceURL    string
+	NotificationCheckInterval string
 }
 
 func Load() *Config {
 	loadEnvFile(".env")
 
 	return &Config{
-		DBHost:     getEnv("DB_HOST", "localhost"),
-		DBPort:     getEnv("DB_PORT", "5432"),
-		DBUser:     getEnv("DB_USER", "postgres"),
-		DBPassword: getEnv("DB_PASSWORD", "password"),
-		DBName:     getEnv("DB_NAME", "taskManager"),
-		DBSSLMode:  getEnv("DB_SSL_MODE", "disable"),
-		ServerPort: getEnv("SERVER_PORT", "8080"),
-		//DBMaxOpenConns: getEnvAsInt("DB_MAX_OPEN_CONNS", 25),
-		//DBMaxIdleConns: getEnvAsInt("DB_MAX_IDLE_CONNS", 5),
-		//DBMaxLifetime:  getEnvAsInt("DB_MAX_LIFETIME", 5),
-		JWTSecret: getEnv("JWT_SECRET", "your-default-secret-key"),
+		DBHost:                    getEnv("DB_HOST", "localhost"),
+		DBPort:                    getEnv("DB_PORT", "5432"),
+		DBUser:                    getEnv("DB_USER", "postgres"),
+		DBPassword:                getEnv("DB_PASSWORD", "password"),
+		DBName:                    getEnv("DB_NAME", "taskManager"),
+		DBSSLMode:                 getEnv("DB_SSL_MODE", "disable"),
+		ServerPort:                getEnv("SERVER_PORT", "8080"),
+		JWTSecret:                 getEnv("JWT_SECRET", "your-default-secret-key"),
+		NotificationServiceURL:    getEnv("NOTIFICATION_SERVICE_URL", "http://localhost:8081"),
+		NotificationCheckInterval: getEnv("NOTIFICATION_CHECK_INTERVAL", "1m"),
 	}
 }
 

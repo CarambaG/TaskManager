@@ -654,3 +654,29 @@ header h1 {
         font-size: 0.8em;
     }
 }
+
+.chart-wrapper {
+    height: 300px;
+    margin-top: 15px;
+}
+
+.chart-container {
+    background: white;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    padding: 25px;
+    margin-top: 20px;
+}
+
+.chart-container h3 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+    font-size: 1.2em;
+}
+
+/* Адаптивность для графиков */
+@media (max-width: 768px) {
+    .chart-wrapper {
+        height: 250px;
+    }
+}

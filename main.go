@@ -104,7 +104,7 @@ func main() {
 	// Страницы
 	http.HandleFunc("/", app.RegisterFormHandler)
 	http.HandleFunc("/dashboard", app.DashboardHandler)
-	//http.HandleFunc("/dashboard", app.protectedApiMiddleware(app.dashboardHandler))
+	//http.HandleFunc("/dashboard", app.ProtectedApiMiddleware(app.DashboardHandler))
 
 	port := cfg.GetServerPortString()
 	server := &http.Server{
@@ -121,6 +121,18 @@ func main() {
 			log.Fatalf("Ошибка сервера: %v", err)
 		}
 	}()
+
+	// Создаем сервис уведомлений
+	notificationService := services.NewNotificationService(cfg.NotificationServiceURL)
+
+	// Создаем и запускаем планировщик проверки задач
+	interval, err := time.ParseDuration(cfg.NotificationCheckInterval)
+	if err != nil {
+		interval = time.Minute // значение по умолчанию
+	}
+
+	taskChecker := services.NewTaskChecker(db, notificationService, interval)
+	go taskChecker.Start()
 
 	// Ожидание сигнала завершения
 	stop := make(chan os.Signal, 1)

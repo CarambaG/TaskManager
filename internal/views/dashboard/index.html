@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Task Manager - Личный кабинет</title>
     <link rel="stylesheet" href="/static/dashboard/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 <div class="container">
@@ -158,8 +159,15 @@
 
                 <div class="chart-container">
                     <h3>Продуктивность по дням</h3>
-                    <div id="productivityChart" class="chart-placeholder">
-                        <p>График будет отображаться здесь</p>
+                    <div class="chart-wrapper">
+                        <canvas id="productivityChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="chart-container">
+                    <h3>Распределение по приоритетам</h3>
+                    <div class="chart-wrapper">
+                        <canvas id="priorityChart"></canvas>
                     </div>
                 </div>
             </section>

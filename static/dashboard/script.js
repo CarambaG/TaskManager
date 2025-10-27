@@ -7,6 +7,8 @@ let currentPage = 1;
 const tasksPerPage = 10;
 let allTasks = [];
 let filteredTasks = [];
+let productivityChart = null;
+let priorityChart = null;
 
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', async () => {
@@ -92,6 +94,7 @@ async function loadTasks() {
             displayTasks();
             updateStats(tasks);
             updatePagination();
+            createCharts(tasks);
         }
     } catch (error) {
         console.error('Failed to load tasks:', error);
@@ -256,6 +259,9 @@ function updateStats(tasks) {
     document.getElementById('statPendingTasks').textContent = activeTasks;
     document.getElementById('statCompletedTasks').textContent = completedTasks;
     document.getElementById('statTodayTasks').textContent = todayTasks;
+
+    // Обновляем графики
+    createCharts(tasks);
 }
 
 // Создание новой задачи
@@ -571,4 +577,136 @@ window.addEventListener('click', (e) => {
     if (e.target === modal) {
         closeTaskModal();
     }
-});
+})
+
+function createCharts(tasks) {
+    createProductivityChart(tasks);
+    createPriorityChart(tasks);
+}
+
+// График продуктивности по дням
+function createProductivityChart(tasks) {
+    const ctx = document.getElementById('productivityChart').getContext('2d');
+
+    // Уничтожаем предыдущий график если существует
+    if (productivityChart) {
+        productivityChart.destroy();
+    }
+
+    // Подготовка данных за последние 7 дней
+    const last7Days = [];
+    for (let i = 6; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        last7Days.push(date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' }));
+    }
+
+    // Подсчет задач по дням
+    const tasksByDay = last7Days.map(day => {
+        const dayTasks = tasks.filter(task => {
+            if (!task.due_date) return false;
+            const taskDate = new Date(task.due_date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+            return taskDate === day;
+        });
+        return dayTasks.length;
+    });
+
+    productivityChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: last7Days,
+            datasets: [{
+                label: 'Количество задач',
+                data: tasksByDay,
+                borderColor: '#3498db',
+                backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        stepSize: 1
+                    },
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.1)'
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+}
+
+// График распределения по приоритетам
+function createPriorityChart(tasks) {
+    const ctx = document.getElementById('priorityChart').getContext('2d');
+
+    // Уничтожаем предыдущий график если существует
+    if (priorityChart) {
+        priorityChart.destroy();
+    }
+
+    // Подсчет задач по приоритетам
+    const priorityCount = {
+        high: tasks.filter(task => task.priority === 'high').length,
+        medium: tasks.filter(task => task.priority === 'medium').length,
+        low: tasks.filter(task => task.priority === 'low').length
+    };
+
+    const backgroundColors = {
+        high: 'rgba(231, 76, 60, 0.8)',
+        medium: 'rgba(241, 196, 15, 0.8)',
+        low: 'rgba(46, 204, 113, 0.8)'
+    };
+
+    priorityChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Высокий', 'Средний', 'Низкий'],
+            datasets: [{
+                data: [priorityCount.high, priorityCount.medium, priorityCount.low],
+                backgroundColor: [
+                    backgroundColors.high,
+                    backgroundColors.medium,
+                    backgroundColors.low
+                ],
+                borderWidth: 2,
+                borderColor: '#fff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        padding: 20,
+                        usePointStyle: true
+                    }
+                }
+            },
+            cutout: '60%'
+        }
+    });
+};
