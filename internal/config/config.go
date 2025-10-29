@@ -66,6 +66,7 @@ func getEnv(key, defaultValue string) string {
 func loadEnvFile(filename string) {
 	file, err := os.Open(filename)
 	if err != nil {
+		//fmt.Println("Error opening file:", err)
 		return
 	}
 	defer file.Close()
