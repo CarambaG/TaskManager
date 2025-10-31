@@ -96,7 +96,7 @@ loginForm.addEventListener('submit', async (e) => {
             //localStorage.setItem('userId', result.id);
 
             loginResult.className = 'result success';
-            loginResult.textContent = `Успешный вход! Добро пожаловать, ${result.login}!`;
+            loginResult.textContent = `Успешный вход! Добро пожаловать!`;
             loginForm.reset();
 
             // Немедленный редирект на dashboard

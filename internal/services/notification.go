@@ -44,17 +44,17 @@ func (ns *NotificationService) SendNotification(task *models.Task) error {
 
 	jsonData, err := json.Marshal(notification)
 	if err != nil {
-		return fmt.Errorf("failed to marshal notification: %v", err)
+		return fmt.Errorf("не удалось упорядочить уведомление: %v", err)
 	}
 
 	resp, err := ns.client.Post(ns.baseURL+"/notifications", "application/json", bytes.NewBuffer(jsonData))
 	if err != nil {
-		return fmt.Errorf("failed to send notification: %v", err)
+		return fmt.Errorf("ошибка отправки уведомления: %v", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusCreated {
-		return fmt.Errorf("notification service returned status: %d", resp.StatusCode)
+		return fmt.Errorf("сервис отправки уведомлений вернул статус: %d", resp.StatusCode)
 	}
 
 	return nil

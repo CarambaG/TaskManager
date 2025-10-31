@@ -112,7 +112,7 @@ func main() {
 		Handler: nil,
 	}
 
-	// Запуск сервера в горутине
+	// Запуск сервера
 	go func() {
 		fmt.Printf("Сервер запущен на порту %s\n", port)
 		fmt.Printf("Откройте в браузере: http://localhost%s\n", port)

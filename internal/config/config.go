@@ -32,7 +32,7 @@ func Load() *Config {
 		DBSSLMode:                 getEnv("DB_SSL_MODE", "disable"),
 		ServerPort:                getEnv("SERVER_PORT", "8080"),
 		JWTSecret:                 getEnv("JWT_SECRET", "your-default-secret-key"),
-		NotificationServiceURL:    getEnv("NOTIFICATION_SERVICE_URL", "http://localhost:8081"),
+		NotificationServiceURL:    getEnv("NOTIFICATION_SERVICE_URL", "http://notification-service-app:8081"),
 		NotificationCheckInterval: getEnv("NOTIFICATION_CHECK_INTERVAL", "1m"),
 	}
 }
