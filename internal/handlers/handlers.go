@@ -74,8 +74,8 @@ func (a *App) MeHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Получаем полную информацию о пользователе из БД
 	var dbUser models.User
-	err := a.db.QueryRow("SELECT id, login, create_at FROM users WHERE id = $1", userClaims.UserID).Scan(
-		&dbUser.ID, &dbUser.Login, &dbUser.CreateAt,
+	err := a.db.QueryRow("SELECT id, login, email, create_at FROM users WHERE id = $1", userClaims.UserID).Scan(
+		&dbUser.ID, &dbUser.Login, &dbUser.Email, &dbUser.CreateAt,
 	)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)

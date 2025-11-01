@@ -680,3 +680,39 @@ header h1 {
         height: 250px;
     }
 }
+
+.info-card form {
+    margin-top: 15px;
+}
+
+.info-card .form-group {
+    margin-bottom: 15px;
+}
+
+.info-card .form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #495057;
+    font-size: 0.9em;
+}
+
+.info-card .form-group input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid #e9ecef;
+    border-radius: 6px;
+    font-size: 0.9em;
+}
+
+.info-card .btn-primary {
+    width: 100%;
+    margin-top: 10px;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .profile-info {
+        grid-template-columns: 1fr;
+    }
+}

@@ -108,6 +108,10 @@
                             <label>Дата регистрации:</label>
                             <span id="profileCreateDate"></span>
                         </div>
+                        <div class="info-item">
+                            <label>Email:</label>
+                            <span id="profileEmail">Не указан</span>
+                        </div>
                     </div>
 
                     <div class="info-card">
@@ -125,6 +129,40 @@
                             <span id="completedTasks">0</span>
                         </div>
                     </div>
+                </div>
+
+                <div class="info-card">
+                    <h3>Смена пароля</h3>
+                    <form id="changePasswordForm">
+                        <div class="form-group">
+                            <label for="currentPassword">Текущий пароль</label>
+                            <input type="password" id="currentPassword" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="newPassword">Новый пароль</label>
+                            <input type="password" id="newPassword" required minlength="6">
+                        </div>
+                        <div class="form-group">
+                            <label for="confirmPassword">Подтвердите новый пароль</label>
+                            <input type="password" id="confirmPassword" required minlength="6">
+                        </div>
+                        <button type="submit" class="btn-primary">Сменить пароль</button>
+                    </form>
+                </div>
+
+                <div class="info-card">
+                    <h3>Смена email</h3>
+                    <form id="changeEmailForm">
+                        <div class="form-group">
+                            <label for="newEmail">Новый email</label>
+                            <input type="email" id="newEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="emailPassword">Текущий пароль</label>
+                            <input type="password" id="emailPassword" required>
+                        </div>
+                        <button type="submit" class="btn-primary">Сменить email</button>
+                    </form>
                 </div>
             </section>
 

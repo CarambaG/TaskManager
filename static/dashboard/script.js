@@ -78,6 +78,7 @@ function displayUserData(user) {
     document.getElementById('userSince').textContent = `Зарегистрирован: ${new Date(user.create_at).toLocaleDateString()}`;
     document.getElementById('profileLogin').textContent = user.login;
     document.getElementById('profileCreateDate').textContent = new Date(user.create_at).toLocaleDateString();
+    document.getElementById('profileEmail').textContent = user.email || 'Не указан';
 }
 
 // Загрузка задач
@@ -424,6 +425,9 @@ function setupEventListeners() {
     document.getElementById('taskSearch').addEventListener('input', (e) => {
         searchTasks(e.target.value);
     });
+
+    document.getElementById('changePasswordForm').addEventListener('submit', handlePasswordChange);
+    document.getElementById('changeEmailForm').addEventListener('submit', handleEmailChange);
 }
 
 // Фильтрация задач
@@ -500,6 +504,81 @@ function resetTaskModal() {
 function resetAndOpenTaskModal() {
     resetTaskModal();
     openTaskModal();
+}
+
+// Смена пароля
+async function handlePasswordChange(e) {
+    e.preventDefault();
+
+    const currentPassword = document.getElementById('currentPassword').value;
+    const newPassword = document.getElementById('newPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+
+    if (newPassword !== confirmPassword) {
+        showNotification('Новые пароли не совпадают', 'error');
+        return;
+    }
+
+    if (newPassword.length < 6) {
+        showNotification('Пароль должен содержать минимум 6 символов', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE}/user/password`, {
+            method: 'PUT',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+                current_password: currentPassword,
+                new_password: newPassword
+            })
+        });
+
+        if (response.ok) {
+            showNotification('Пароль успешно изменен', 'success');
+            document.getElementById('changePasswordForm').reset();
+        } else {
+            const error = await response.text();
+            throw new Error(error);
+        }
+    } catch (error) {
+        console.error('Failed to change password:', error);
+        showNotification('Ошибка смены пароля', 'error');
+    }
+}
+
+// Смена email
+async function handleEmailChange(e) {
+    e.preventDefault();
+
+    const newEmail = document.getElementById('newEmail').value;
+    const currentPassword = document.getElementById('emailPassword').value;
+
+    try {
+        const response = await fetch(`${API_BASE}/user/email`, {
+            method: 'PUT',
+            headers: getAuthHeaders(),
+            body: JSON.stringify({
+                new_email: newEmail,
+                password: currentPassword
+            })
+        });
+
+        if (response.ok) {
+            showNotification('Email успешно изменен', 'success');
+            document.getElementById('changeEmailForm').reset();
+
+            document.getElementById('profileEmail').textContent = newEmail;
+
+            await loadUserData();
+        } else {
+            const error = await response.text();
+            throw new Error(error);
+        }
+    } catch (error) {
+        console.error('Failed to change email:', error);
+        showNotification('Ошибка смены email', 'error');
+    }
 }
 
 // Выход из системы

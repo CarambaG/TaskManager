@@ -101,6 +101,12 @@ func main() {
 		}
 	}))
 
+	// Обработчик смены пароля
+	http.HandleFunc("/api/user/password", app.ProtectedApiMiddleware(app.SaveUserPasswordHandler))
+
+	// Обработка смены логина
+	http.HandleFunc("/api/user/email", app.ProtectedApiMiddleware(app.SaveUserEmailHandler))
+
 	// Страницы
 	http.HandleFunc("/", app.RegisterFormHandler)
 	http.HandleFunc("/dashboard", app.DashboardHandler)

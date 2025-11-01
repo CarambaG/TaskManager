@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 // Обработчик dashboard
@@ -281,4 +283,146 @@ func (a *App) SaveTaskDataHandler(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(response)
+}
+
+func (a *App) SaveUserPasswordHandler(w http.ResponseWriter, r *http.Request) {
+	user_id := r.Context().Value("user").(*services.Claims).UserID
+	body := struct {
+		CurrentPassword string `json:"current_password"`
+		NewPassword     string `json:"new_password"`
+	}{}
+
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Неверный JSON"})
+		return
+	}
+
+	// Валидация нового пароля
+	if body.NewPassword == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Новый пароль не может быть пустым"})
+		return
+	}
+
+	if len(body.NewPassword) < 6 {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Пароль должен содержать минимум 6 символов"})
+		return
+	}
+
+	// Начало смены пароля
+	tx, err := a.db.Begin()
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "ошибка при смене пароля"})
+		return
+	}
+	defer tx.Rollback()
+
+	query1 := `
+		SELECT pass FROM users WHERE id = $1
+	`
+
+	passDB := ""
+	tx.QueryRow(query1, user_id).Scan(&passDB)
+
+	if !controllers.CheckPasswordHash(body.CurrentPassword, passDB) {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "неверный пароль"})
+		return
+	}
+
+	hash, err := bcrypt.GenerateFromPassword([]byte(body.NewPassword), 12)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "ошибка при смене пароля"})
+	}
+
+	query2 := `
+		UPDATE users SET pass = $1 WHERE id = $2
+	`
+
+	_, err = tx.Exec(query2, hash, user_id)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "ошибка при смене пароля"})
+		return
+	}
+
+	if err := tx.Commit(); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "ошибка при смене пароля"})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"result": "пароль изменен"})
+}
+
+func (a *App) SaveUserEmailHandler(w http.ResponseWriter, r *http.Request) {
+	user_id := r.Context().Value("user").(*services.Claims).UserID
+	body := struct {
+		Email string `json:"new_email"`
+		Pass  string `json:"password"`
+	}{}
+
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "Неверный JSON"})
+		return
+	}
+
+	if body.Email == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "почта не должна быть пустой"})
+		return
+	}
+
+	tx, err := a.db.Begin()
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "ошибка при смене почты"})
+		return
+	}
+	defer tx.Rollback()
+
+	query1 := `
+		SELECT pass FROM users WHERE id = $1
+	`
+
+	// Проверка пароля
+	passDB := ""
+	err = tx.QueryRow(query1, user_id).Scan(&passDB)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "ошибка при смене почты"})
+		return
+	}
+
+	if !controllers.CheckPasswordHash(body.Pass, passDB) {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "неверный пароль"})
+		return
+	}
+
+	query2 := `
+		UPDATE users SET email = $1 WHERE id = $2
+	`
+
+	_, err = tx.Exec(query2, body.Email, user_id)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "ошибка при смене почты"})
+		return
+	}
+
+	if err := tx.Commit(); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]string{"error": "ошибка при смене почты"})
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(map[string]string{"result": "почта изменена"})
 }
