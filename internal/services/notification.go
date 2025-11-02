@@ -31,17 +31,7 @@ type NotificationRequest struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
-func (ns *NotificationService) SendNotification(task *models.Task) error {
-	notification := NotificationRequest{
-		TaskID:    task.ID,
-		UserID:    task.UserID,
-		Title:     task.Title,
-		Message:   task.Description,
-		DueDate:   parseDueDate(task.DueDate),
-		Priority:  task.Priority,
-		CreatedAt: time.Now(),
-	}
-
+func (ns *NotificationService) SendNotification(notification *models.Notification) error {
 	jsonData, err := json.Marshal(notification)
 	if err != nil {
 		return fmt.Errorf("не удалось упорядочить уведомление: %v", err)

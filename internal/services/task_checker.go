@@ -35,13 +35,15 @@ func (tc *TaskChecker) checkDueTasks() {
 	log.Println("Проверка запланированных задач...")
 
 	query := `
-        SELECT id, user_id, title, description, priority, due_date, created_at
-        FROM tasks 
-        WHERE deleted = false 
-          AND notified = false 
-          AND due_date IS NOT NULL 
-          AND due_date <= CURRENT_DATE
-          AND due_date >= CURRENT_DATE - INTERVAL '1 day'
+        SELECT t.id, t.user_id, u.email, t.title, t.description, t.priority, t.due_date
+        FROM tasks t
+		INNER JOIN users u ON u.id = t.user_id
+        WHERE t.deleted = false 
+          AND t.notified = false 
+          AND t.due_date IS NOT NULL 
+          AND t.due_date <= CURRENT_DATE
+          AND t.due_date >= CURRENT_DATE - INTERVAL '1 day'
+		  AND email IS NOT NULL
     `
 
 	rows, err := tc.db.Query(query)
@@ -51,37 +53,37 @@ func (tc *TaskChecker) checkDueTasks() {
 	}
 	defer rows.Close()
 
-	var tasks []models.Task
+	var notifications []models.Notification
 	for rows.Next() {
-		var task models.Task
+		var notification models.Notification
 		err := rows.Scan(
-			&task.ID,
-			&task.UserID,
-			&task.Title,
-			&task.Description,
-			&task.Priority,
-			&task.DueDate,
-			&task.CreatedAt,
+			&notification.Task_id,
+			&notification.User_id,
+			&notification.Email,
+			&notification.Title,
+			&notification.Message,
+			&notification.Priority,
+			&notification.Due_date,
 		)
 		if err != nil {
-			log.Printf("Ошибка сканирования задачи %s: %v", task.ID, err)
+			log.Printf("Ошибка сканирования задачи %s: %v", notification.ID, err)
 			continue
 		}
-		tasks = append(tasks, task)
+		notifications = append(notifications, notification)
 	}
 
-	for _, task := range tasks {
-		if err := tc.processTask(&task); err != nil {
-			log.Printf("Ошибка обработки задачи %s: %v", task.ID, err)
+	for _, notification := range notifications {
+		if err := tc.processTask(&notification); err != nil {
+			log.Printf("Ошибка обработки задачи %s: %v", notification.Task_id, err)
 		}
 	}
 
 	//log.Printf("Обработано %d запланированных задач", len(tasks))
 }
 
-func (tc *TaskChecker) processTask(task *models.Task) error {
+func (tc *TaskChecker) processTask(notification *models.Notification) error {
 	// Отправляем уведомление
-	if err := tc.notificationService.SendNotification(task); err != nil {
+	if err := tc.notificationService.SendNotification(notification); err != nil {
 		return fmt.Errorf("ошибка отпраки уведомления: %v", err)
 	}
 
@@ -90,12 +92,12 @@ func (tc *TaskChecker) processTask(task *models.Task) error {
         UPDATE tasks 
         SET notified = true, notification_sent_at = $1 
         WHERE id = $2`,
-		time.Now(), task.ID,
+		time.Now(), notification.Task_id,
 	)
 	if err != nil {
 		return fmt.Errorf("ошибка обновления времени отправки уведомления у задачи: %v", err)
 	}
 
-	log.Printf("Уведомление отправлено для задачи: %s", task.ID)
+	log.Printf("Уведомление отправлено для задачи: %s", notification.Task_id)
 	return nil
 }

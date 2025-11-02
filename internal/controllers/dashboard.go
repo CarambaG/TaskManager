@@ -149,8 +149,6 @@ func CreateTaskDataBase(db *sql.DB, taskData *models.Task) (err error) {
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
 	`
 
-	fmt.Println(false, '\n', taskData.Title, '\n', taskData.Description, '\n', taskData.Status, '\n', taskData.Priority, '\n', taskData.DueDate, '\n', time.Now(), '\n', time.Now())
-
 	// Вставляем новую задачу в БД
 	_, err = db.Exec(query,
 		taskData.UserID,
