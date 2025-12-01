@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -25,7 +26,7 @@ func CreateUser(db *sql.DB, login, pass string) (*models.User, error) {
 	var count int
 	err := db.QueryRow("SELECT count(login) FROM users WHERE login = $1", login).Scan(&count)
 	if err != nil {
-		fmt.Println("Ошибка в проверке наличия")
+		log.Println("Ошибка в проверке наличия")
 		return nil, err
 	}
 	if count > 0 {
@@ -35,7 +36,7 @@ func CreateUser(db *sql.DB, login, pass string) (*models.User, error) {
 	//Хэшируем пароль
 	hash, err := bcrypt.GenerateFromPassword([]byte(pass), 12) // cost = 12
 	if err != nil {
-		fmt.Println("Ошибка в хешировании пароля")
+		log.Println("Ошибка в хешировании пароля")
 		return nil, err
 	}
 
@@ -50,7 +51,7 @@ func CreateUser(db *sql.DB, login, pass string) (*models.User, error) {
 	err = db.QueryRow("INSERT INTO users (login, pass, create_at) VALUES ($1, $2, $3) RETURNING id",
 		user.Login, user.PassHash, user.CreateAt).Scan(&user.ID)
 	if err != nil {
-		fmt.Println("Ошибка во вставке аккаунта")
+		log.Println("Ошибка во вставке аккаунта")
 		return nil, err
 	}
 

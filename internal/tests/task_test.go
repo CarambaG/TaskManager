@@ -38,7 +38,7 @@ func TestTaskValidation(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "invalid UserID",
+			name: "invalid User_id",
 			task: models.Task{
 				ID:          "00000000-0000-0000-0000-000000000000",
 				UserID:      "00000000-0000-0000-0000-00000000000Z",

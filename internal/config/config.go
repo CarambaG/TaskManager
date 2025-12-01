@@ -18,6 +18,8 @@ type Config struct {
 	JWTSecret                 string
 	NotificationServiceURL    string
 	NotificationCheckInterval string
+	KafkaBrokers              string
+	KafkaNotificationTopic    string
 }
 
 func Load() *Config {
@@ -34,6 +36,8 @@ func Load() *Config {
 		JWTSecret:                 getEnv("JWT_SECRET", "your-default-secret-key"),
 		NotificationServiceURL:    getEnv("NOTIFICATION_SERVICE_URL", "http://notification-service-app:8081"),
 		NotificationCheckInterval: getEnv("NOTIFICATION_CHECK_INTERVAL", "1m"),
+		KafkaBrokers:              getEnv("KAFKA_BROKERS", "kafka:9092"),
+		KafkaNotificationTopic:    getEnv("KAFKA_NOTIFICATION_TOPIC", "task-notifications"),
 	}
 }
 

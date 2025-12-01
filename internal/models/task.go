@@ -70,7 +70,7 @@ func (t *Task) validateUserId() error {
 
 	matched, err := regexp.MatchString(`^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$`, t.UserID)
 	if err != nil || !matched {
-		return errors.New("Invalid UserID")
+		return errors.New("Invalid User_id")
 	}
 
 	return nil

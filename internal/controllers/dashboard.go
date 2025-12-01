@@ -227,12 +227,6 @@ func SavaTaskDB(db *sql.DB, UserID *string, TaskID *string, newTaskData *models.
 		*UserID,
 		*TaskID,
 	)
-	fmt.Println(newTaskData.Title, "\n",
-		newTaskData.Description, "\n",
-		newTaskData.Priority, "\n",
-		newTaskData.DueDate, "\n",
-		*UserID, "\n",
-		*TaskID, "\n", err)
 	if err != nil {
 		return err
 	}

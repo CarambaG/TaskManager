@@ -7,7 +7,6 @@ import (
 	"TaskManager/internal/services"
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -34,7 +33,7 @@ func main() {
 	if err := database.PingDatabase(db); err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("Успешное подключение к БД")
+	log.Println("Успешное подключение к БД")
 
 	// Создаем JWT сервис
 	jwtService := services.NewJWTService(cfg.JWTSecret)
@@ -110,7 +109,6 @@ func main() {
 	// Страницы
 	http.HandleFunc("/", app.RegisterFormHandler)
 	http.HandleFunc("/dashboard", app.DashboardHandler)
-	//http.HandleFunc("/dashboard", app.ProtectedApiMiddleware(app.DashboardHandler))
 
 	port := cfg.GetServerPortString()
 	server := &http.Server{
@@ -120,24 +118,28 @@ func main() {
 
 	// Запуск сервера
 	go func() {
-		fmt.Printf("Сервер запущен на порту %s\n", port)
-		fmt.Printf("Откройте в браузере: http://localhost%s\n", port)
-		fmt.Printf("Dashboard: http://localhost%s/dashboard\n", port)
+		log.Printf("Сервер запущен на порту %s\n", port)
+		log.Printf("Откройте в браузере: http://localhost%s\n", port)
+		log.Printf("Dashboard: http://localhost%s/dashboard\n", port)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Ошибка сервера: %v", err)
 		}
 	}()
 
-	// Создаем сервис уведомлений
-	notificationService := services.NewNotificationService(cfg.NotificationServiceURL)
+	// Инициализируем Kafka Producer
+	kafkaProducer, err := services.NewKafkaProducer(cfg.KafkaBrokers, cfg.KafkaNotificationTopic)
+	if err != nil {
+		log.Fatalf("Ошибка инициализации Kafka Producer: %v", err)
+	}
+	defer kafkaProducer.Close()
 
-	// Создаем и запускаем планировщик проверки задач
+	// Создаем и запускаем сервис проверки задач
 	interval, err := time.ParseDuration(cfg.NotificationCheckInterval)
 	if err != nil {
 		interval = time.Minute // значение по умолчанию
 	}
 
-	taskChecker := services.NewTaskChecker(db, notificationService, interval)
+	taskChecker := services.NewTaskChecker(db, kafkaProducer, interval)
 	go taskChecker.Start()
 
 	// Ожидание сигнала завершения
@@ -145,12 +147,12 @@ func main() {
 	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
 	<-stop
 
-	fmt.Println("\nЗавершение работы сервера...")
+	log.Println("\nЗавершение работы сервера...")
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	if err := server.Shutdown(ctx); err != nil {
 		log.Fatalf("Ошибка при завершении сервера: %v", err)
 	}
-	fmt.Println("Сервер корректно завершен")
+	log.Println("Сервер корректно завершен")
 }

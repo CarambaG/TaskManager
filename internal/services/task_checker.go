@@ -9,20 +9,22 @@ import (
 )
 
 type TaskChecker struct {
-	db                  *sql.DB
-	notificationService *NotificationService
-	interval            time.Duration
+	db            *sql.DB
+	kafkaProducer *KafkaProducer
+	interval      time.Duration
 }
 
-func NewTaskChecker(db *sql.DB, notificationService *NotificationService, interval time.Duration) *TaskChecker {
+func NewTaskChecker(db *sql.DB, kafkaProducer *KafkaProducer, interval time.Duration) *TaskChecker {
 	return &TaskChecker{
-		db:                  db,
-		notificationService: notificationService,
-		interval:            interval,
+		db:            db,
+		kafkaProducer: kafkaProducer,
+		interval:      interval,
 	}
 }
 
 func (tc *TaskChecker) Start() {
+	log.Println("TaskChecker запущен")
+
 	ticker := time.NewTicker(tc.interval)
 	defer ticker.Stop()
 
@@ -83,7 +85,7 @@ func (tc *TaskChecker) checkDueTasks() {
 
 func (tc *TaskChecker) processTask(notification *models.Notification) error {
 	// Отправляем уведомление
-	if err := tc.notificationService.SendNotification(notification); err != nil {
+	if err := tc.kafkaProducer.SendNotification(notification); err != nil {
 		return fmt.Errorf("ошибка отпраки уведомления: %v", err)
 	}
 

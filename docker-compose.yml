@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  app:
+    container_name: taskmanager-app
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=password
+      - DB_NAME=taskmanager
+      - DB_SSL_MODE=disable
+      - SERVER_PORT=8000
+      - JWT_SECRET=your-super-secret-jwt-key-change-in-production-docker
+      - NOTIFICATION_CHECK_INTERVAL=1m
+      - KAFKA_BROKERS=kafka:9092
+      - KAFKA_NOTIFICATION_TOPIC=task-notifications
+    depends_on:
+      - db
+    networks:
+      - taskmanager-network
+      - microservices-network
+    restart: unless-stopped
+
+  db:
+    container_name: taskmanager-db
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=taskmanager
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - taskmanager-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  taskmanager-network:
+    driver: bridge
+  microservices-network:
+    external: true
